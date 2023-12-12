@@ -28,13 +28,41 @@ namespace Calculator
         private readonly IProccessEval _proccessEval;
         private const string DelOperator = "<-";
         private const string EqualOperator = "=";
+        private const string ClearOperator = "C";
         
         public MainWindow()
         {
-            _viewQueue = new ViewQueue(new QueueRequests<string>(), new QueueResults<string>());
+
+            _viewQueue = new ViewQueue(new SyncQueue(), new SyncQueue());
             _proccessEval = new ProccessEval();
             DataContext = _viewQueue;
             InitializeComponent();
+
+            CancellationTokenSource tokenSource = new CancellationTokenSource();
+            var token = tokenSource.Token;
+            TaskFactory taskFactory = new TaskFactory(token);
+            for(var i = 0; i<2; i++)
+            {
+                taskFactory.StartNew(async () =>
+                {
+                    while (true)
+                    {
+                        var expression = _viewQueue.DequeueRequest();
+                        if (expression is null)
+                        {
+                            await Task.Delay(1000);
+                            continue;
+                        }
+
+                        var res = _proccessEval.Eval(expression);
+                        _viewQueue.EnqueueResult(res);
+                    }
+
+                });
+            }
+
+           
+
         }
 
         private async void Button_Click(object sender, RoutedEventArgs e)
@@ -44,9 +72,21 @@ namespace Calculator
 
             if (btnValue.Equals(EqualOperator))
             {
+                if (string.IsNullOrEmpty(textLabel.Text.Trim()))
+                {
+                    MessageBox.Show("Отсутсвтует выражения для рассчёта");
+                    return;
+                }
+
+                if(!int.TryParse(evalTimeText.Text.Trim(),out var time))
+                {
+                    MessageBox.Show("Неверно указно время вычисления");
+                    evalTimeText.Text = "0";
+                    return;
+                }
+                _proccessEval.Timer = time;
                 var expression = textLabel.Text;
-                var tread = new Thread(async ()=> await _proccessEval.Eval(expression, _viewQueue));
-                tread.Start();
+                _viewQueue.EnqueueRequest(expression);
                
                 textLabel.Text = string.Empty;
                 return;
@@ -60,7 +100,12 @@ namespace Calculator
                 textLabel.Text = textLabel.Text.Remove(textLabel.Text.Length - 1);
                 return;
             }
-  
+
+            if (btnValue.Equals(ClearOperator))
+            {
+                textLabel.Text = "";
+                return;
+            }
 
             textLabel.Text += btnValue;
             return;

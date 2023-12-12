@@ -6,5 +6,6 @@ namespace Calculator.Logic;
 
 public interface IProccessEval
 {
-    public Task Eval(string expression, ViewQueue viewQueue, int secTime = 3);
+    public int Timer { get; set; }
+    public string Eval(string expression);
 }

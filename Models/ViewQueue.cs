@@ -9,11 +9,11 @@ namespace Calculator.Models;
 
 public class ViewQueue : INotifyPropertyChanged
 {
-    private QueueRequests<string> _queueRequests;
-    private QueueResults<string> _queueResults;
+    private SyncQueue _queueRequests;
+    private SyncQueue _queueResults;
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public ViewQueue(QueueRequests<string> queueRequests, QueueResults<string> queueResults)
+    public ViewQueue(SyncQueue queueRequests, SyncQueue queueResults)
     {
         _queueRequests = queueRequests;
         _queueResults = queueResults;
@@ -25,10 +25,11 @@ public class ViewQueue : INotifyPropertyChanged
         OnPropertyChanged("Results");
     }
 
-    public void DequeueResult()
+    public string DequeueResult()
     {
-        _queueResults.Dequeue();
+        var elem = _queueResults.Dequeue();
         OnPropertyChanged("Results");
+        return elem;
     }
 
     public void EnqueueRequest(string expression)
@@ -37,10 +38,11 @@ public class ViewQueue : INotifyPropertyChanged
         OnPropertyChanged("Requests");
     }
 
-    public void DequeueRequest()
+    public string DequeueRequest()
     {
-        _queueRequests.Dequeue();
+       var elem = _queueRequests.Dequeue();
         OnPropertyChanged("Requests");
+        return elem;
     }
 
     public IEnumerable<string> Requests => _queueRequests.ReadAll();
